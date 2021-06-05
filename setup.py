@@ -8,12 +8,12 @@ def readme():
 
 setup(
     name='gtest-report',
-    version='0.0.1',
+    version='0.0.2',
     description='Generate test report for gtest.',
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
+        'Development Status :: 1 - Planning',
         'Programming Language :: Python :: 3',
-        'Topic :: Software Development :: Documentation',
+        'Topic :: Software Development :: Testing',
         'License :: OSI Approved :: MIT License'
     ],
     url='https://github.com/maplye/gtest-report',

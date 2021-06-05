@@ -1,0 +1,55 @@
+Metadata-Version: 2.1
+Name: gtest-report
+Version: 0.0.2
+Summary: Generate test report for gtest.
+Home-page: https://github.com/maplye/gtest-report
+Author: Yao Guorong
+Author-email: maplye@gmail.com
+License: MIT
+Description: # gcov-testreport
+        
+        ## Usage
+        
+        
+        
+        ## Development
+        
+        ### Running locally
+        
+        Start python3 in the base of repository.
+        
+        ```python
+        pass
+        ```
+        
+        ### Running tests
+        
+        ```shell
+        python3 setup.py test
+        ```
+        
+        ### Running pylint
+        
+        ```shell
+        pylint gtest_report
+        ```
+        
+        ### Running formatter
+        
+        ```shell
+        yapf -rip --style=yapf .
+        ```
+        
+        ### Deploying to PyPi
+        
+        ```shell
+        python3 setup.py sdist
+        twine upload dist/*
+        ```
+        
+Platform: UNKNOWN
+Classifier: Development Status :: 1 - Planning
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Software Development :: Testing
+Classifier: License :: OSI Approved :: MIT License
+Description-Content-Type: text/markdown

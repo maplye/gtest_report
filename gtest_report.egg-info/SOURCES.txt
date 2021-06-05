@@ -1,0 +1,11 @@
+MANIFEST.in
+README.md
+setup.cfg
+setup.py
+gtest_report/testresult.py
+gtest_report.egg-info/PKG-INFO
+gtest_report.egg-info/SOURCES.txt
+gtest_report.egg-info/dependency_links.txt
+gtest_report.egg-info/not-zip-safe
+gtest_report.egg-info/requires.txt
+gtest_report.egg-info/top_level.txt
