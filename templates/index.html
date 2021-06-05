@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<table width="80%" cellpadding=1 cellspacing=1 border=0>
+
+  <tr>
+    <td width="50%"><br></td>
+    <td width="10%"></td>
+    <td width="10%"></td>
+    <td width="10%"></td>
+  </tr>
+
+  <tr>
+    <td class="tableHead">Test files</td>
+    <td class="tableHead" colspan="3">Test result</td>
+  </tr>
+  {% for tf in model.testfiles %}
+  <tr>
+    <td class="coverFile"><a href="{{tf.link}}">{{tf.title}}</a></td>
+    <td class="coverBar" align="center">
+      <table border=0 cellspacing=0 cellpadding=1><tr><td class="coverBarOutline">
+        {%if tf.tc_percent==100 %}
+        <img src="emerald.png" width=100 height=10 alt="100.0%">
+        {%elif tf.tc_percent>90 %}
+        <img src="amber.png" width="{{tf.tc_percent}}" height="10" alt="{{tf.tc_percent}}%"><img src="snow.png" width="{{100-tf.tc_percent}}" height="10" alt="{{100-tf.tc_percent}}%">
+        {%else%}
+        <img src="ruby.png" width="{{tf.tc_percent}}" height="10" alt="{{tf.tc_percent}}%"><img src="snow.png" width="{{100-tf.tc_percent}}" height="10" alt="{{100-tf.tc_percent}}%">
+        {%endif%}
+      </td></tr></table>
+    </td>
+    <td class="{%if tf.tc_percent==100 %}coverPerHi{%elif tf.tc_percent>90 %}coverPerMed{%else%}coverPerLo{%endif%}">{{ tf.tc_percent }}%</td>
+    <td class="{%if tf.tc_percent==100 %}coverNumHi{%elif tf.tc_percent>90 %}coverPerMed{%else%}coverNumLo{%endif%}">{{ tf.tc_pass_count }} / {{tf.tc_count}}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+
+{% endblock %}

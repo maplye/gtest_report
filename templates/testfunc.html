@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+
+{% block css %}
+<link rel="stylesheet" type="text/css" href="../../gcov.css">
+{% endblock %}
+
+{% block nav %}
+<a href="../../index.html">top level</a> - <a href="../../{{model.test_file.link}}">{{model.test_file.title}}</a> - {{model.name}}
+{% endblock %}
+
+{% block content %}
+<!-- <h1>{{ model.name }}</h1> -->
+<table width="80%" cellpadding=1 cellspacing=1 border=0>
+  <tr>
+    <td width="20%"><br></td>
+    <td width="20%"><br></td>
+    <td width="20%"><br></td>
+    <td width="20%"><br></td>
+    <td width="5%"></td>
+  </tr>
+
+  <tr>
+    <td class="tableHead">ID</td>
+    <td class="tableHead">Name</td>
+    <td class="tableHead">Inputs</td>
+    <td class="tableHead">Outputs</td>
+    <td class="tableHead">Test result</td>
+  </tr>
+  {% for tc in model.testcases %}
+  <tr>
+    <td class="coverFile"><a href="{{tc.link}}">{{tc.id}}</a></td>
+    <td class="coverFile">{{tc.title}}</td>
+    <td class="tcInput">
+      <ul>
+        {% for input in tc.inputs %}
+        <li>{{input.title}}</li>
+        {% endfor %}
+        </ul>
+    </td>
+    <td class="tcOutput">
+      <ul>
+        {% for output in tc.outputs %}
+        <li>{{output.title}}</li>
+        {% endfor %}
+        </ul>
+    </td>
+    <td class="{%if tc.testresult.result=='OK' %}testresultHi{%else%}testresultLo{%endif%}">{{tc.testresult.result}}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% endblock %}

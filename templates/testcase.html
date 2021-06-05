@@ -1,0 +1,29 @@
+{% extends "base_blank.html" %}
+
+
+{% block css %}
+<link rel="stylesheet" type="text/css" href="../../gcov.css">
+{% endblock %}
+
+{% block nav %}
+<a href="../../index.html">top level</a> - <a href="../../{{model.test_func.test_file.link}}">{{model.test_func.test_file.title}}</a> - {{model.test_func.name}}
+{% endblock %}
+
+{% block content %}
+<h3>{{ model.test_route }}</h3>
+<table cellpadding=0 cellspacing=0 border=0>
+  <tr>
+    <td><br></td>
+  </tr>
+  <tr>
+    <td>
+<pre class="sourceHeading">          Line data    Source code</pre>
+<pre class="source">
+{% for cl in lines %}<span class="lineNum">{{"%10s" | format(loop.index,)}} </span>{%if cl.is_hit %}<span class="lineCov">{%endif%} {%if cl.bno %}<span class="blockName">{%endif%}{{"%10s" | format(cl.bno,)}}{%if cl.bno %}</span>{%endif%} : {{ cl.line }}{%if cl.is_hit %}</span>{%endif%}
+{% endfor %}
+</pre>
+    </td>
+  </tr>
+</table>
+
+{% endblock %}
