@@ -1,2 +1,0 @@
-comment-parser==1.2.3
-Jinja2==3.0.1
