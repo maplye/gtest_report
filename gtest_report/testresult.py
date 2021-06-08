@@ -18,9 +18,12 @@ import itertools
 
 from comment_parser import comment_parser
 from jinja2 import Environment, FileSystemLoader
+from .logic_flow import analysis_lines
 
 BASE_DIR = "test/unit_test/"
 NOW = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
 
 class CodeLine:
   def __init__(self, line, is_hit, block_no=''):
@@ -92,35 +95,59 @@ class TestCase:
   def get_source_code(self):
     codelines = []
     src_file = self.test_func.test_file.src_file
-    start_pos = self.test_func.get_start_pos() - 1
-    end_pos = start_pos
+    (start_pos, end_pos) = self.test_func.get_code_pos()
+    # end_pos = start_pos
 
     hit_line_nos = []
     # 13-15/16-18-20~21-22-23-27-28-34-37
     if self.test_route:
       print("== test route", self.test_route)
-      state_area_list = self.test_route.split('-')
-      for state_area in state_area_list:
-        if '/' in state_area:
-          line_no_str_list = state_area.split('/')
-          for line_no_str in line_no_str_list:
-            hit_line_nos.append(int(line_no_str.strip()))
-        elif '~' in state_area:
-          line_no_str_list = state_area.split('~')
-          if len(line_no_str_list)==2:
-            start_sno = int(line_no_str_list[0])
-            end_sno = int(line_no_str_list[1]) + 1
-            range_line_nos = range(start_sno, end_sno)
-            hit_line_nos += range_line_nos
-        else:
-          hit_line_nos.append(int(state_area.strip()))
+      # state_area_list = self.test_route.split('-')
+      # for state_area in state_area_list:
+      #   if '/' in state_area:
+      #     line_no_str_list = state_area.split('/')
+      #     for line_no_str in line_no_str_list:
+      #       hit_line_nos.append(int(line_no_str.strip()))
+      #   elif '~' in state_area:
+      #     line_no_str_list = state_area.split('~')
+      #     if len(line_no_str_list)==2:
+      #       start_sno = int(line_no_str_list[0]) 
+      #       end_sno = int(line_no_str_list[1]) + 1
+      #       range_line_nos = range(start_sno, end_sno)
+      #       hit_line_nos += range_line_nos
+      #   else:
+      #     hit_line_nos.append(int(state_area.strip()))
+      
 
-    if hit_line_nos:
-      end_pos = start_pos + hit_line_nos[-1]
+
+    # if hit_line_nos:
+    #   end_pos = start_pos + hit_line_nos[-1]
     print("start_pos:", start_pos)
     print("end_pos:", end_pos)
     if src_file:
       filename = f"src/{src_file}"
+      blocks = []
+      with open(filename) as f:
+        blockcode_str_list = itertools.islice(f, start_pos, end_pos)
+        blocks = analysis_lines(blockcode_str_list)
+        print("===========================")
+        print([x.start_no for x in blocks])
+        print("===========================")
+      
+      if self.test_route:
+        route_list = self.test_route.split('-')
+
+        for block in blocks:
+          if block.no in route_list:
+            for i in range(block.start_no, block.end_no):
+              hit_line_nos.append(i)
+          else:
+            print("block no:", block.no)
+            print("set:", range(block.start_no, block.end_no))
+            hit_line_nos = list(set(hit_line_nos) - set(range(block.start_no, block.end_no)))
+
+      print("hit_line_nos:", hit_line_nos)
+
       with open(filename) as f:
         codeline_str_list = itertools.islice(f, start_pos, end_pos)
 
@@ -129,12 +156,10 @@ class TestCase:
           is_hit = line_no in hit_line_nos
 
           bno = ''
-          if self.test_func.blocks:
-            print("$func blogs:", self.test_func.blocks)
-            blist = [x for x in self.test_func.blocks if int(x['value'])==line_no]
-            print("$Blocklist:", blist)
+          if blocks:
+            blist = [x for x in blocks if x.start_no==line_no]
             if blist:
-              bno = blist[0]['name']
+              bno = blist[0].no
 
           codeline = CodeLine(line.rstrip(), is_hit, bno)
           codelines.append(codeline)
@@ -142,7 +167,8 @@ class TestCase:
   
   def generate_html(self):
     print(f"======test case: {self.id} generate_html======")
-    env = Environment(loader=FileSystemLoader('test/tools/templates'))
+    templates_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+    env = Environment(loader=FileSystemLoader(templates_path))
     template = env.get_template('testcase.html')
 
     lines = self.get_source_code()
@@ -196,16 +222,32 @@ class TestFunc:
       percent = round(self.tc_pass_count * 100 / self.tc_count, 1)
     return percent
 
-  def get_start_pos(self):
-    pos = 0
+  def get_code_pos(self):
+    print("get_code_pos ...")
+    start_pos = 0
+    end_pos = 0
     if self.test_file.src_file:
       lookup = f'::{self.name}'
       filename = f'src/{self.test_file.src_file}'
+      nested_level = 0
       with open(filename) as f:
           for num, line in enumerate(f, 1):
-              if lookup in line:
-                  pos = num
-    return pos
+            line = line.strip()
+            # print(line)
+            if lookup in line:
+              start_pos = num - 1
+            
+            if start_pos > 0:
+              if line.endswith("{"):
+                nested_level = nested_level + 1
+
+              if line.startswith("}"):
+                nested_level = nested_level - 1
+                if nested_level == 0:
+                  end_pos = num
+                  break
+  
+    return (start_pos, end_pos)
   
   def get_blocks(self):
     blocks = []
@@ -217,11 +259,13 @@ class TestFunc:
           bname = block[0]
           bvalue = block[1]
           blocks.append({'name': bname, 'value': bvalue})
+    
     return blocks
 
   def generate_html(self):
     print(f"======test func: {self.name} generate_html======")
-    env = Environment(loader=FileSystemLoader('test/tools/templates'))
+    templates_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+    env = Environment(loader=FileSystemLoader(templates_path))
     template = env.get_template('testfunc.html')
     output_from_parsed_template = template.render(model=self)
     # print(output_from_parsed_template)
@@ -377,8 +421,8 @@ class TestFile:
   def generate_html(self):
     print(f"******test file: {self.filename} generate_html******")
     self.__transform__()
-    
-    env = Environment(loader=FileSystemLoader('test/tools/templates'))
+    templates_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+    env = Environment(loader=FileSystemLoader(templates_path))
     template = env.get_template('testfile.html')
     output_from_parsed_template = template.render(model=self)
     # print(output_from_parsed_template)
@@ -429,7 +473,8 @@ class TestReport:
 
   def generate_html(self):
     print("******TEST REPORT generate_html******")
-    env = Environment(loader=FileSystemLoader('test/tools/templates'))
+    templates_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+    env = Environment(loader=FileSystemLoader(templates_path))
     template = env.get_template('index.html')
     output_from_parsed_template = template.render(model=self)
     # print(output_from_parsed_template)
@@ -474,7 +519,7 @@ class TestOutput:
               curr_test_result.output_info += line
 
 
-if __name__ == "__main__":
+def generate_html(fname=None):
   report_dir = "reports/result/"
   try:
     options, args = getopt.getopt(sys.argv[1:], "r:", ["report="])
@@ -492,13 +537,20 @@ if __name__ == "__main__":
 
   # test files
   testfiles = []
-  for filename in glob.glob("test/unit_test/**/*_test.cpp", recursive=True):
-    # print(filename)
-    tf = TestFile(filename)
+  if fname:
+    tf = TestFile(fname)
     tf.test_results = test_output.test_results
     tf.report_dir = report_dir
     tf.generate_html()
-    testfiles.append(tf)
+    testfiles.append(tf)  
+  else:
+    for filename in glob.glob("test/unit_test/**/*_test.cpp", recursive=True):
+      # print(filename)
+      tf = TestFile(filename)
+      tf.test_results = test_output.test_results
+      tf.report_dir = report_dir
+      tf.generate_html()
+      testfiles.append(tf)
 
   # test report
   test_report = TestReport()
@@ -506,15 +558,27 @@ if __name__ == "__main__":
   test_report.report_dir = report_dir
   test_report.generate_html()
 
+def generate_html2(fname=None):
 
-if __name__ == "__main__1":
-  codelines = []
-  filename = "/home/conan/projects/conchpilot/src/adm_control/common/hysteresis_filter.cpp"
-  with open(filename) as f:
-    codelines = f.readlines()
+  here = os.path.dirname(os.path.abspath(__file__))
+  # mod_path = files('gtest_report')
+  print(here)
+
+if __name__ == "__main__":
+  # codelines = []
+  # filename = "/home/conan/projects/conchpilot/src/adm_control/common/hysteresis_filter.cpp"
+  # with open(filename) as f:
+  #   codelines = f.readlines()
   
-  print(len(codelines))
-  print('=========================')
-  print(codelines[0].rstrip(),"***********")
-  print('=======================')
+  # print(len(codelines))
+  # print('=========================')
+  # print(codelines[0].rstrip(),"***********")
+  # print('=======================')
+  # generate_html()
+
+  import pkg_resources
+  my_data = pkg_resources.resource_string(__name__, "foo.dat")
+
+  # mod_path = files('gtest_report')
+  print(my_data)
   
