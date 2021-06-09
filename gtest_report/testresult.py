@@ -26,10 +26,12 @@ NOW = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
 class CodeLine:
-  def __init__(self, line, is_hit, block_no=''):
+  def __init__(self, line, is_block_hit, block_no='', run_times=0):
     self.line = line
-    self.is_hit = is_hit
     self.bno = block_no
+    self.is_block_hit = False
+    self.run_times = run_times
+    self.is_hit = (run_times > 0)
 
 class TestCaseInput:
   def __init__(self, title):
@@ -52,6 +54,12 @@ class TestResult:
     self.test_case_id = test_case_id
     self.result = ""
     self.output_info = ""
+
+class TestCov:
+  def __init__(self, sf):
+    self.sf = sf
+    self.line_no = None
+    self.run_times = None
 
 
 class TestCase:
@@ -125,15 +133,13 @@ class TestCase:
     print("start_pos:", start_pos)
     print("end_pos:", end_pos)
     if src_file:
-      filename = f"src/{src_file}"
+      filename = src_file
+      print("filename:", filename)
       blocks = []
       with open(filename) as f:
         blockcode_str_list = itertools.islice(f, start_pos, end_pos)
         blocks = analysis_lines(blockcode_str_list)
-        print("===========================")
-        print([x.start_no for x in blocks])
-        print("===========================")
-      
+
       if self.test_route:
         route_list = self.test_route.split('-')
 
@@ -142,18 +148,23 @@ class TestCase:
             for i in range(block.start_no, block.end_no):
               hit_line_nos.append(i)
           else:
-            print("block no:", block.no)
-            print("set:", range(block.start_no, block.end_no))
             hit_line_nos = list(set(hit_line_nos) - set(range(block.start_no, block.end_no)))
-
-      print("hit_line_nos:", hit_line_nos)
+      test_covs = self.test_func.test_file.test_covs
 
       with open(filename) as f:
         codeline_str_list = itertools.islice(f, start_pos, end_pos)
 
         for idx, line in enumerate(codeline_str_list):
           line_no = idx+1
-          is_hit = line_no in hit_line_nos
+          is_block_hit = line_no in hit_line_nos
+
+          run_times = 0
+          test_covs = self.test_func.test_file.test_covs
+          if test_covs:
+            full_line_no = start_pos + line_no
+            cov_list = [x for x in test_covs if x.sf==filename and x.line_no == full_line_no]
+            if cov_list:
+              run_times = cov_list[0].run_times
 
           bno = ''
           if blocks:
@@ -161,7 +172,7 @@ class TestCase:
             if blist:
               bno = blist[0].no
 
-          codeline = CodeLine(line.rstrip(), is_hit, bno)
+          codeline = CodeLine(line.rstrip(), is_block_hit, bno, run_times)
           codelines.append(codeline)
     return codelines
   
@@ -223,12 +234,12 @@ class TestFunc:
     return percent
 
   def get_code_pos(self):
-    print("get_code_pos ...")
+    # print("get_code_pos ...")
     start_pos = 0
     end_pos = 0
     if self.test_file.src_file:
       lookup = f'::{self.name}'
-      filename = f'src/{self.test_file.src_file}'
+      filename = self.test_file.src_file
       nested_level = 0
       with open(filename) as f:
           for num, line in enumerate(f, 1):
@@ -246,7 +257,7 @@ class TestFunc:
                 if nested_level == 0:
                   end_pos = num
                   break
-  
+    # print(start_pos, end_pos)
     return (start_pos, end_pos)
   
   def get_blocks(self):
@@ -286,6 +297,7 @@ class TestFile:
   pre_test_case = None
   # test results from run output message
   test_results = None
+  test_covs  = None
   report_dir = None
   src_file = None
 
@@ -519,6 +531,35 @@ class TestOutput:
               curr_test_result.output_info += line
 
 
+class TestCoverage:
+  def __init__(self, filename):
+    self.filename = filename
+    self.test_covs = []
+  
+  def transform_cov(self):
+    print("transform_cov...")
+    curr_sf = None
+    
+    with open(self.filename) as cov_file:
+      for i, line in enumerate(cov_file):
+        #SF
+        if line.startswith("SF:/home/conan/projects/conchpilot/src/"):
+          sf = line[35:].strip()
+          curr_sf = sf
+        
+        if line.startswith("DA:"):
+          if curr_sf:
+            curr_test_cov = TestCov(sf)
+            counts = line[3:].strip().split(",")
+            curr_test_cov.line_no = int(counts[0])
+            curr_test_cov.run_times = int(counts[1])
+            # print(curr_test_cov.line_no, curr_test_cov.run_times)
+            self.test_covs.append(curr_test_cov)
+      
+        if line.startswith("end_of_record"):
+          curr_sf = None
+        
+
 def generate_html(fname=None):
   report_dir = "reports/result/"
   try:
@@ -535,11 +576,16 @@ def generate_html(fname=None):
   test_output = TestOutput("test/tools/unit_test.output")
   test_output.transform_output()
 
+  # cov
+  test_cov = TestCoverage("test/tools/conchpilotall.info")
+  test_cov.transform_cov()
+
   # test files
   testfiles = []
   if fname:
     tf = TestFile(fname)
     tf.test_results = test_output.test_results
+    tf.test_covs = test_cov.test_covs
     tf.report_dir = report_dir
     tf.generate_html()
     testfiles.append(tf)  
@@ -548,6 +594,7 @@ def generate_html(fname=None):
       # print(filename)
       tf = TestFile(filename)
       tf.test_results = test_output.test_results
+      tf.test_covs = test_cov.test_covs
       tf.report_dir = report_dir
       tf.generate_html()
       testfiles.append(tf)

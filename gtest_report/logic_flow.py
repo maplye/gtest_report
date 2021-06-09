@@ -88,7 +88,7 @@ def analysis_code(blocks, code_lines, parent_block=None):
               block.code_lines = code_lines_new
               block.no  = "C"+ str(len(blocks) + 1)
               if parent_block:
-                block.end_no = parent_block.start_no + idx + 1
+                block.end_no = parent_block.start_no + idx + 2
               else:
                 block.end_no = idx + 1
               blocks.append(block)
