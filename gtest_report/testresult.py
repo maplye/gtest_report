@@ -7,40 +7,29 @@
 # Latest Revision: 2021-05-20
 #
 # --------------------------------------------------------------------------------- #
-import glob, os
-import re
+import os
 import sys
-from datetime import datetime
 from pathlib import Path
 import getopt
-import itertools
-
-
-from comment_parser import comment_parser
-from jinja2 import Environment, FileSystemLoader
 
 from .test_file import TestFile
 from .test_output import TestOutput
 from .test_report import TestReport
 from .test_coverage import TestCoverage
 
-
-
-
 BASE_DIR = "test/unit_test/"
-
 
 
 def generate_html(fname=None):
   report_dir = "reports/result/"
   try:
     options, args = getopt.getopt(sys.argv[1:], "r:", ["report="])
-    for name,value in options:
-      if name in ("-r","--report"):
+    for name, value in options:
+      if name in ("-r", "--report"):
         report_dir = value
   except getopt.GetoptError:
     sys.exit()
-  
+
   Path(report_dir).mkdir(parents=True, exist_ok=True)
 
   # output
@@ -59,7 +48,7 @@ def generate_html(fname=None):
     tf.test_covs = test_cov.test_covs
     tf.report_dir = report_dir
     tf.generate_html()
-    testfiles.append(tf)  
+    testfiles.append(tf)
   else:
     for filename in glob.glob("test/unit_test/**/*_test.cpp", recursive=True):
       # print(filename)
@@ -76,18 +65,24 @@ def generate_html(fname=None):
   test_report.report_dir = report_dir
   test_report.generate_html()
 
+
 def generate_html2(fname=None):
 
   here = os.path.dirname(os.path.abspath(__file__))
   # mod_path = files('gtest_report')
   print(here)
 
+
+def main(fname=None):
+  generate_html(fname)
+
+
 if __name__ == "__main__":
   # codelines = []
   # filename = "/home/conan/projects/conchpilot/src/adm_control/common/hysteresis_filter.cpp"
   # with open(filename) as f:
   #   codelines = f.readlines()
-  
+
   # print(len(codelines))
   # print('=========================')
   # print(codelines[0].rstrip(),"***********")
@@ -99,4 +94,3 @@ if __name__ == "__main__":
 
   # mod_path = files('gtest_report')
   print(my_data)
-  

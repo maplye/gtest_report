@@ -6,6 +6,7 @@ import unittest
 from gtest_report.logic_flow import analysis
 from pprint import pprint
 
+
 class GoParserTest(unittest.TestCase):
 
   def testSingleIf(self):
@@ -16,7 +17,7 @@ class GoParserTest(unittest.TestCase):
       break;
     }
     """
-    
+
     block_codes = analysis(code)
     print("===========================")
     print(block_codes)
@@ -34,7 +35,7 @@ class GoParserTest(unittest.TestCase):
     else
       bo_TransPoint = false;
     """
-    
+
     block_codes = analysis(code)
     print("===========================")
     pprint([x.code_lines for x in block_codes])
@@ -43,9 +44,6 @@ class GoParserTest(unittest.TestCase):
     self.assertEqual(len(block_codes), 2)
     self.assertEqual(len(block_codes[0].code_lines), 5)
     self.assertEqual(len(block_codes[1].code_lines), 2)
-     
-  
-  
 
   def testSingleFor(self):
     code = """
@@ -56,13 +54,13 @@ class GoParserTest(unittest.TestCase):
     }
     """
     condition = analysis(code)[0]
-    
+
     self.assertEqual(condition.block_type, "for")
     self.assertEqual(condition.start_no, 1)
     self.assertEqual(condition.end_no, 5)
     self.assertEqual(condition.body_start_no, 3)
     self.assertEqual(condition.body_end_no, 4)
-    
+
   def testIfNestIf(self):
     code = u"""void FindPoint::FindPlanHandover(std::vector<std::vector<double>> waypoint)
         {
@@ -193,7 +191,6 @@ class GoParserTest(unittest.TestCase):
     self.assertEqual(len(block_codes[2]), 4)
     self.assertEqual(len(block_codes[3]), 4)
 
-
   def testSingleForNestIf(self):
     code = """for(int i = ToHandover_Idx_temp;i >= 0 ; i--) 
     {
@@ -207,10 +204,10 @@ class GoParserTest(unittest.TestCase):
     }
     """
     condition = analysis(code)[0]
-    
+
     self.assertEqual(condition.start_no, 1)
     self.assertEqual(condition.end_no, 5)
-    self.assertEqual(condition.body, [3,4])
+    self.assertEqual(condition.body, [3, 4])
 
   def testSingleForNestFor(self):
     code = """for (int d = max(20,int(DistToEx_Min)); d < 120; d++)
@@ -224,9 +221,7 @@ class GoParserTest(unittest.TestCase):
     }
     """
     condition = analysis(code)[0]
-    
+
     self.assertEqual(condition.start_no, 1)
     self.assertEqual(condition.end_no, 5)
-    self.assertEqual(condition.body, [3,4])
-
-
+    self.assertEqual(condition.body, [3, 4])

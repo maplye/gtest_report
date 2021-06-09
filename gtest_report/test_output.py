@@ -7,21 +7,10 @@
 # Latest Revision: 2021-05-20
 #
 # --------------------------------------------------------------------------------- #
-import glob, os
-import re
-import sys
-from datetime import datetime
-from pathlib import Path
-import getopt
-import itertools
-
-
-from comment_parser import comment_parser
-from jinja2 import Environment, FileSystemLoader
-from .logic_flow import analysis_lines
 
 
 class TestResult:
+
   def __init__(self, test_case_id):
     self.test_case_id = test_case_id
     self.result = ""
@@ -29,16 +18,17 @@ class TestResult:
 
 
 class TestOutput:
+
   def __init__(self, filename):
     self.filename = filename
     self.test_results = []
-  
+
   def transform_output(self):
     curr_test_result = None
 
     with open(self.filename) as output_file:
       for i, line in enumerate(output_file):
-        #start
+        # start
         if line.startswith("[ RUN      ]"):
           test_case_id = line[13:].strip()
           curr_test_result = TestResult(test_case_id)
@@ -46,15 +36,15 @@ class TestOutput:
           # append output
           if curr_test_result:
             if line.startswith("[       OK ]"):
-              #end OK
-              curr_test_result.result  = "OK"
+              # end OK
+              curr_test_result.result = "OK"
 
               self.test_results.append(curr_test_result)
               curr_test_result = None
-            
+
             elif line.startswith("[  FAILED  ]"):
-              #end FAILED
-              curr_test_result.result  = "FAILED"
+              # end FAILED
+              curr_test_result.result = "FAILED"
 
               self.test_results.append(curr_test_result)
               curr_test_result = None

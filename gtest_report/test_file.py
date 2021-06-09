@@ -7,18 +7,11 @@
 # Latest Revision: 2021-05-20
 #
 # --------------------------------------------------------------------------------- #
-import glob, os
-import re
-import sys
 from datetime import datetime
 from pathlib import Path
-import getopt
-import itertools
-
 
 from comment_parser import comment_parser
 from jinja2 import Environment, FileSystemLoader
-from .logic_flow import analysis_lines
 from .test_func import TestFunc
 from .test_case import TestCase, TestCaseInput, TestCaseOutput
 
@@ -31,25 +24,27 @@ class TestFile:
   pre_test_case = None
   # test results from run output message
   test_results = None
-  test_covs  = None
+  test_covs = None
   report_dir = None
   src_file = None
 
-
   def __init__(self, filename):
     self.filename = filename
-    self.testfuncs  = []
+    self.testfuncs = []
     self.title = filename[15:]
     self.created_date = NOW
-    
+
     # self.dir = 'test/tools/reports/'+'-'.join(self.title.split('/')[0:-1]) # decision/decision_test
-    self.rela_dir = '-'.join(self.title.split('/')[0:-1]) # decision/decision_test
-    self.shortname = os.path.basename(self.filename)    # decision_test.cpp
-    self.onlyname = os.path.splitext(os.path.basename(self.filename))[0]  # decision_test
-    self.htmlname = os.path.splitext(self.filename)[0]+ ".html" #decision_test.html
+    self.rela_dir = '-'.join(
+        self.title.split('/')[0:-1])  # decision/decision_test
+    self.shortname = os.path.basename(self.filename)  # decision_test.cpp
+    self.onlyname = os.path.splitext(os.path.basename(
+        self.filename))[0]  # decision_test
+    self.htmlname = os.path.splitext(
+        self.filename)[0] + ".html"  #decision_test.html
 
   @property
-  def link( self ):
+  def link(self):
     return f"{self.rela_dir}/{self.shortname}.html"
 
   def get_testcases(self):
@@ -59,18 +54,18 @@ class TestFile:
     return testcases
 
   @property
-  def tc_count( self ):
+  def tc_count(self):
     testcases = self.get_testcases()
     count = len(testcases)
     return count
-  
+
   @property
-  def tc_pass_count( self ):
+  def tc_pass_count(self):
     testcase_list = self.get_testcases()
     testcases_pass = [x for x in testcase_list if x.result == "OK"]
     count = len(testcases_pass)
     return count
-  
+
   @property
   def tc_percent(self):
     percent = 0
@@ -88,7 +83,7 @@ class TestFile:
       comment_text = comment.text().strip()
       is_multiline = comment.is_multiline()
       # test_func = None
-      
+
       # test func
       if is_multiline:
         clines = comment_text.split('\n')
@@ -100,7 +95,7 @@ class TestFile:
           name = name_str[3:]
           test_func = TestFunc(name, desc)
           test_func.test_file = self
-          
+
           self.pre_test_func = test_func
 
           self.testfuncs.append(self.pre_test_func)
@@ -109,24 +104,13 @@ class TestFile:
           # cpp file
           if cline.startswith(" * $cpp:"):
             self.src_file = cline[9:]
-          
-          # block
-          if cline.startswith(" * $Block:"):
-            print("$Block:")
-            block_text = cline[11:]
-            if self.pre_test_func:
-              self.pre_test_func.block_text = block_text
-              blocks = self.pre_test_func.get_blocks()
-              print(blocks)
-              self.pre_test_func.blocks = blocks
 
-        
       if is_multiline is False:
         print(comment_text)
         # test case
         if comment_text.startswith("#"):
           tc_title = comment_text[1:]
-          
+
           test_case = TestCase(tc_title)
           test_case.comment = comment
           test_case.test_func = test_func
@@ -134,8 +118,10 @@ class TestFile:
           test_case_id = test_case.get_id()
           print('test_case_id', test_case_id)
           # test_result = next((r for r in self.test_results if r.test_case_id == test_case_id), None)
-          test_result_list = [r for r in self.test_results if r.test_case_id == test_case_id]
-          if len(test_result_list)>0:
+          test_result_list = [
+              r for r in self.test_results if r.test_case_id == test_case_id
+          ]
+          if len(test_result_list) > 0:
             test_case.testresult = test_result_list[0]
             test_case.result = test_result_list[0].result
 
@@ -147,7 +133,7 @@ class TestFile:
           test_route = comment_text[1:]
           if self.pre_test_case:
             self.pre_test_case.test_route = test_route
-        
+
         # input
         if comment_text.startswith(">"):
           input_title = comment_text[1:]
@@ -155,7 +141,7 @@ class TestFile:
           test_input.test_case = test_case
           if self.pre_test_case:
             self.pre_test_case.inputs.append(test_input)
-        
+
         # output
         if comment_text.startswith("<"):
           if self.pre_test_case:
@@ -167,17 +153,18 @@ class TestFile:
   def generate_html(self):
     print(f"******test file: {self.filename} generate_html******")
     self.__transform__()
-    templates_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
+    templates_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  "templates")
     env = Environment(loader=FileSystemLoader(templates_path))
     template = env.get_template('testfile.html')
     output_from_parsed_template = template.render(model=self)
     # print(output_from_parsed_template)
     # print("rela_dir:", self.rela_dir)
     # print("path:", self.report_dir+self.rela_dir)
-    Path(self.report_dir+self.rela_dir).mkdir(parents=True, exist_ok=True)
+    Path(self.report_dir + self.rela_dir).mkdir(parents=True, exist_ok=True)
     # to save the results
     with open(self.report_dir + self.link, "w") as fh:
-        fh.write(output_from_parsed_template)
+      fh.write(output_from_parsed_template)
 
     for ts in self.testfuncs:
       ts.generate_html()
