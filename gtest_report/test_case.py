@@ -72,7 +72,7 @@ class TestCase:
       with open(test_filename) as fp:
         for i, line in enumerate(fp):
           if i >= id_line_idx and i <= id_line_idx + 5:
-            pattern = '\((.+),(.+)\)'
+            pattern = r'\((.+),(.+)\)'
             match = re.search(pattern, line)
             if match:
               id = f"{match.group(1)}.{match.group(2).strip()}"

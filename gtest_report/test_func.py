@@ -10,7 +10,10 @@
 import os
 from datetime import datetime
 from pathlib import Path
+import itertools
+
 from jinja2 import Environment, FileSystemLoader
+from .logic_flow import analysis_lines
 
 NOW = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -98,8 +101,68 @@ class TestFunc:
     for tc in self.testcases:
       tc.generate_html()
 
+  def get_blocks(self):
+    blocks = []
+    (start_pos, end_pos) = self.get_code_pos()
+    filename = self.test_file.src_file
+    with open(filename) as f:
+      blockcode_str_list = itertools.islice(f, start_pos, end_pos)
+      blocks = analysis_lines(blockcode_str_list)
+
+    return blocks
+
+  def add_edge(self, g, start, end):
+    print("add_edge:", start, "->", end)
+    g.add_edge(start, end, dir="forward")
+
   def generate_cfg(self):
+    import pygraphviz as pyg
+    blocks = self.get_blocks()
+    # print(blocks)
 
-    blist = [x for x in self.blocks if x.start_no == line_no]
+    g = pyg.AGraph()
+    pre_block = None
+    for block in blocks:
 
-    pass
+      child_blocks = [x for x in blocks if x.parent_block == block]
+
+      g.add_node(f'{block.no}_E')
+      g.add_node(f'{block.no}')
+
+      self.add_edge(g, f'{block.no}_S', block.no)
+
+      # 如果没有子节点，则当前节点指向节点结束
+      if len(child_blocks) == 0:
+        self.add_edge(g, block.no, f'{block.no}_E')
+
+      if block.parent_block:
+        print("parent_block:", block.parent_block.no)
+
+        # 如果有父节点，则当前节点结束指向父节点的结束
+        self.add_edge(g, f'{block.no}_E', f'{block.parent_block.no}_E')
+
+        self.add_edge(g, f'{pre_block.no}_E', f'{block.parent_block.no}_S')
+      else:
+        print("no parent block.")
+        if len(child_blocks) > 0:
+          print("child_blocks[0]:", child_blocks[0].no)
+          self.add_edge(g, block.no, f'{child_blocks[0].no}_S')
+        else:
+          print("no child.")
+          self.add_edge(g, block.no, f'{block.no}_E')
+
+        if pre_block:
+          print("pre_block: ", pre_block.no)
+
+          if pre_block.parent_block:
+            # 如果前一节点有父节点，则将父节点的结束指向当前节点的开始
+            self.add_edge(g, f'{pre_block.parent_block.no}_E', f'{block.no}_S')
+          else:
+            self.add_edge(g, f'{pre_block.no}_E', f'{block.no}_S')
+
+      self.add_edge(g, f'{block.no}_S', f'{block.no}_E')
+
+      pre_block = block
+
+    g.layout(prog='dot')  # 绘图类型
+    g.draw('pyg1.png')  # 绘制

@@ -9,10 +9,12 @@
 # --------------------------------------------------------------------------------- #
 import os
 import sys
+import glob
 from pathlib import Path
 import getopt
 
 from .test_file import TestFile
+from .test_func import TestFunc
 from .test_output import TestOutput
 from .test_report import TestReport
 from .test_coverage import TestCoverage
@@ -74,7 +76,15 @@ def generate_html2(fname=None):
 
 
 def main(fname=None):
-  generate_html(fname)
+  # generate_html(fname)
+
+  fn = "test/unit_test/find_point/find_point_test.cpp"
+
+  tf = TestFile(fn)
+  tf.src_file = "src/find_point/find_point_new.cpp"
+  func = TestFunc("FindPlanHandover", "")
+  func.test_file = tf
+  func.generate_cfg()
 
 
 if __name__ == "__main__":

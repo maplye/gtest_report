@@ -17,6 +17,7 @@ class Block:
   body_start_no = None
   body_end_no = None
   code_lines = None
+  parent_block = None
 
 
 def analysis(code):
@@ -55,6 +56,7 @@ def analysis_code(blocks, code_lines, parent_block=None):
         # print("===block begin...", line)
         code_lines_new = []
         block = Block()
+        block.parent_block = parent_block
         if parent_block:
           block.start_no = parent_block.start_no + idx
         else:

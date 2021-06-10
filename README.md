@@ -18,6 +18,8 @@ pass
 
 ```shell
 python3 setup.py test
+
+nosetests gtest_report.tests.logic_flow_test:GoParserTest.testSingleIf -s
 ```
 
 ### Running pylint
