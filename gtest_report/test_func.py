@@ -123,6 +123,7 @@ class TestFunc:
     g = pyg.AGraph()
     pre_block = None
     for block in blocks:
+      print("= current block:", block.no)
 
       child_blocks = [x for x in blocks if x.parent_block == block]
 
@@ -138,6 +139,7 @@ class TestFunc:
 
       # 如果该节点有分支
       if len(block.branchs) > 0:
+        print("block: %s have branches" % block.no)
         self.add_edge(g, f'{block.no}_S', block.branchs[0].no)
         self.add_edge(g, block.branchs[0].no, f'{block.no}_E')
 
@@ -147,8 +149,8 @@ class TestFunc:
         # 如果有父节点，则当前节点结束指向父节点的结束
         self.add_edge(g, f'{block.no}_E', f'{block.parent_block.no}_E')
         # 如果该节点没有分支
-        if len(block.branchs) == 0:
-          self.add_edge(g, f'{pre_block.no}_E', f'{block.parent_block.no}_S')
+        # if len(block.branchs) == 0:
+        #   self.add_edge(g, f'{pre_block.no}_E', f'{block.parent_block.no}_S')
       else:
         print("no parent block.")
         if len(child_blocks) > 0:
@@ -172,6 +174,7 @@ class TestFunc:
         self.add_edge(g, f'{block.no}_S', f'{block.no}_E')
 
       pre_block = block
+      print("set pre_block: ", block.no)
 
     g.layout(prog='dot')  # 绘图类型
     g.draw('pyg1.png')  # 绘制

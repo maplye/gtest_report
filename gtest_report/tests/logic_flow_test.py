@@ -12,90 +12,137 @@ class LogicFlowTest(unittest.TestCase):
   lf = None
 
   def setUp(self):
-    print("LF setup")
+    print("setup")
 
     self.lf = LogicFlow()
 
   def tearDown(self):
-    print("LF teardown")
+    print("teardown")
+
+  def print_block(self, block):
+    for block in block.child_blocks:
+      print(block.start_no, block.end_no, block.code_lines[0])
+      print("type:", block.block_type)
+      if len(block.child_blocks) > 0:
+        self.print_block(block)
 
   def testSingleIf(self):
     code = """
-    if (DistToExH_Min <= 2.5)
-    {
-      bo_TransPoint = true;
-      break;
+    void Test::TestFunc() {
+      if (DistToExH_Min <= 2.5)
+      {
+        bo_TransPoint = true;
+        break;
+      }
     }
     """
 
-    block_codes = self.lf.analysis(code)
+    block = self.lf.analysis(code)[0]
 
-    self.assertEqual(len(block_codes), 1)
-    self.assertEqual(block_codes[0].no, "C1")
-    self.assertEqual(len(block_codes[0].code_lines), 5)
+    self.assertEqual(len(block.child_blocks), 1)
+    self.assertEqual(block.child_blocks[0].start_no, 2)
+    self.assertEqual(block.child_blocks[0].end_no, 6)
+    self.assertEqual(block.child_blocks[0].block_type, "if")
+
+  def testSingleIfNoBrace(self):
+    code = """
+    void Test::TestFunc() {
+      if (DistToExH_Min <= 2.5)
+        bo_TransPoint = true;
+
+      if (DistToExH_Min > 5){
+        bo_TransPoint = false;
+      }
+    }
+    """
+
+    block = self.lf.analysis(code)[0]
+
+    self.assertEqual(len(block.child_blocks), 2)
+    self.assertEqual(block.child_blocks[0].start_no, 2)
+    self.assertEqual(block.child_blocks[0].end_no, 3)
+    self.assertEqual(block.child_blocks[0].block_type, "if")
 
   def testSingleIfElse(self):
     code = """
-    if (DistToExH_Min <= 2.5)
-    {
-      bo_TransPoint = true;
-      break;
-    }
-    else
-    {
-      bo_TransPoint = false;
+    void Test::TestFunc() {
+      if (a <= 0)
+      {
+        b = true;
+      }
+      if (DistToExH_Min <= 2.5)
+      {
+        bo_TransPoint = true;
+      }
+      else
+      {
+        bo_TransPoint = false;
+      }
     }
     """
 
-    block_codes = self.lf.analysis(code)
-    print("=== block: ")
-    pprint([x.code_lines for x in block_codes])
-    print("=== branch-0: ")
-    pprint([x.branchs[0].code_lines for x in block_codes])
+    block = self.lf.analysis(code)[0]
+
+    print("===========================")
+    self.print_block(block)
     print("===========================")
 
-    self.assertEqual(len(block_codes), 1)
-    self.assertEqual(len(block_codes[0].branchs[0].code_lines), 5)
+    self.assertEqual(len(block.child_blocks), 2)
+    self.assertEqual(block.child_blocks[0].start_no, 2)
+    self.assertEqual(block.child_blocks[0].end_no, 5)
+    self.assertEqual(block.child_blocks[0].block_type, "if")
+    self.assertEqual(block.child_blocks[1].start_no, 6)
+    self.assertEqual(block.child_blocks[1].end_no, 13)
+    self.assertEqual(block.child_blocks[1].block_type, "ifelse")
 
   def testSingleIfElseWithoutBackBrace(self):
     code = """
-    if (DistToExH_Min <= 2.5)
-    {
-      bo_TransPoint = true;
-      break;
+    void Test::TestFunc() {
+      if (DistToExH_Min <= 2.5)
+        bo_TransPoint = true;
+      else
+        bo_TransPoint = false;
     }
-    else
-      bo_TransPoint = false;
     """
 
-    block_codes = self.lf.analysis(code)
+    block = self.lf.analysis(code)[0]
+
     print("===========================")
-    pprint([x.code_lines for x in block_codes])
+    self.print_block(block)
     print("===========================")
 
-    self.assertEqual(len(block_codes), 2)
-    self.assertEqual(len(block_codes[0].code_lines), 5)
-    self.assertEqual(len(block_codes[1].code_lines), 2)
+    self.assertEqual(len(block.child_blocks), 1)
+    self.assertEqual(block.child_blocks[0].start_no, 2)
+    self.assertEqual(block.child_blocks[0].end_no, 5)
+    self.assertEqual(block.child_blocks[0].block_type, "ifelse")
 
   def testSingleFor(self):
     code = """
-    for(int i = ToHandover_Idx_temp;i >= 0 ; i--)
-    {
-      std::cout << "== ToHandover_Idx_temp " <<std::endl;
-      std::cout << "DistHandover: " << DistHandover << std::endl;
+    void Test::TestFunc() {
+      for(int i = ToHandover_Idx_temp;i >= 0 ; i--)
+      {
+        std::cout << "== ToHandover_Idx_temp " <<std::endl;
+        std::cout << "DistHandover: " << DistHandover << std::endl;
+      }
     }
     """
-    condition = self.lf.analysis(code)[0]
+    block = self.lf.analysis(code)[0]
 
-    # self.assertEqual(condition.block_type, "for")
-    self.assertEqual(condition.start_no, 2)
-    self.assertEqual(condition.end_no, 6)
+    print("===========================")
+    self.print_block(block)
+    print("===========================")
+
+    self.assertEqual(len(block.child_blocks), 1)
+    self.assertEqual(block.child_blocks[0].block_type, "for")
+    self.assertEqual(block.child_blocks[0].start_no, 2)
+    self.assertEqual(block.child_blocks[0].end_no, 6)
 
   def testIfNestIf(self):
-    code = u"""
-    if(bo_TransPoint == true)
-    {
-        std::cout << "Index: " << FP_stPlanToDwa_.nPlanToDwaIdx << " angle:" << FP_stDestinationStatus_.dAngleHeading  << std::endl;
+    code = """
+    void Test::TestFunc() {
+      if(bo_TransPoint == true)
+      {
+        std::cout << "Index: " << FP_stPlanToDwa_.nPlanToDwaIdx << std::endl;
         if(FP_stPlanToDwa_.nPlanToDwaIdx  < FP_stPlanToDwa_.nNearestIdx)
         {
             ToHandover_Idx_temp = FP_stPlanToDwa_.nPlanToDwaIdx ;
@@ -106,59 +153,73 @@ class LogicFlowTest(unittest.TestCase):
             ToHandover_Idx_temp = FP_stPlanToDwa_.nNearestIdx;
             std::cout << "right forward 50m" << std::endl;
         }
-    }
-    """
-    block_codes = self.lf.analysis(code)
-    print("===========================")
-    pprint([x.start_no for x in block_codes])
-    print("===========================")
-    self.assertEqual(len(block_codes), 2)
-    self.assertEqual(block_codes[0].start_no, 2)
-    self.assertEqual(block_codes[0].end_no, 15)
-    self.assertEqual(block_codes[1].start_no, 5)
-    self.assertEqual(block_codes[1].end_no, 11)
-
-  def testSingleForNestIf(self):
-    code = """
-    for(int i = ToHandover_Idx_temp;i >= 0 ; i--)
-    {
-      std::cout << "== ToHandover_Idx_temp " <<std::endl;
-      std::cout << "DistHandover: " << DistHandover << std::endl;
-      if(DistHandover >= 50.0)
-      {
-          FP_stPlanToDwa_.nVirtualPIdx = i;
-          break;
       }
     }
     """
-    blocks = self.lf.analysis(code)
+    block = self.lf.analysis(code)[0]
+    print("===========================")
+    self.print_block(block)
+    print("===========================")
+    self.assertEqual(len(block.child_blocks), 1)
+    self.assertEqual(block.child_blocks[0].block_type, "if")
+    self.assertEqual(block.child_blocks[0].start_no, 2)
+    self.assertEqual(block.child_blocks[0].end_no, 15)
+    self.assertEqual(block.child_blocks[0].child_blocks[0].block_type, "ifelse")
+    self.assertEqual(block.child_blocks[0].child_blocks[0].start_no, 5)
+    self.assertEqual(block.child_blocks[0].child_blocks[0].end_no, 14)
 
-    self.assertEqual(len(blocks), 2)
-    self.assertEqual(blocks[0].start_no, 2)
-    self.assertEqual(blocks[0].end_no, 11)
-    self.assertEqual(blocks[1].start_no, 6)
-    self.assertEqual(blocks[1].end_no, 12)
+  def testSingleForNestIf(self):
+    code = """
+    void Test::TestFunc() {
+      for(int i = ToHandover_Idx_temp;i >= 0 ; i--)
+      {
+        std::cout << "== ToHandover_Idx_temp " <<std::endl;
+        std::cout << "DistHandover: " << DistHandover << std::endl;
+        if(DistHandover >= 50.0)
+        {
+            FP_stPlanToDwa_.nVirtualPIdx = i;
+            break;
+        }
+      }
+    }
+    """
+    block = self.lf.analysis(code)[0]
+    print("===========================")
+    self.print_block(block)
+    print("===========================")
+
+    self.assertEqual(len(block.child_blocks), 1)
+    self.assertEqual(block.child_blocks[0].block_type, "for")
+    self.assertEqual(block.child_blocks[0].start_no, 2)
+    self.assertEqual(block.child_blocks[0].end_no, 11)
+    self.assertEqual(block.child_blocks[0].child_blocks[0].block_type, "if")
+    self.assertEqual(block.child_blocks[0].child_blocks[0].start_no, 6)
+    self.assertEqual(block.child_blocks[0].child_blocks[0].end_no, 10)
 
   def testForNestFor(self):
     code = """
-    for (int d = max(20,int(DistToEx_Min)); d < 120; d++)
-    {
-        std::cout << "min_nearest:" << min_nearest << std::endl;
-        std::cout << "max_nearest:" << max_nearest << std::endl;
-        for (int j = min_nearest; j < max_nearest; j++)
-        {
-            std::cout << "j:" << j << std::endl;
-        }
+    void Test::TestFunc() {
+      for (int d = max(20,int(DistToEx_Min)); d < 120; d++)
+      {
+          std::cout << "min_nearest:" << min_nearest << std::endl;
+          std::cout << "max_nearest:" << max_nearest << std::endl;
+          for (int j = min_nearest; j < max_nearest; j++)
+          {
+              std::cout << "j:" << j << std::endl;
+          }
+      }
     }
     """
-    blocks = self.lf.analysis(code)
+    block = self.lf.analysis(code)[0]
 
     print("===========================")
-    pprint([x.code_lines for x in blocks])
+    self.print_block(block)
     print("===========================")
 
-    self.assertEqual(len(blocks), 2)
-    self.assertEqual(blocks[0].start_no, 2)
-    self.assertEqual(blocks[0].end_no, 10)
-    self.assertEqual(blocks[1].start_no, 6)
-    self.assertEqual(blocks[1].end_no, 11)
+    self.assertEqual(len(block.child_blocks), 1)
+    self.assertEqual(block.child_blocks[0].block_type, "for")
+    self.assertEqual(block.child_blocks[0].start_no, 2)
+    self.assertEqual(block.child_blocks[0].end_no, 10)
+    self.assertEqual(block.child_blocks[0].child_blocks[0].block_type, "for")
+    self.assertEqual(block.child_blocks[0].child_blocks[0].start_no, 6)
+    self.assertEqual(block.child_blocks[0].child_blocks[0].end_no, 9)
