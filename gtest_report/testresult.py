@@ -12,6 +12,7 @@ import sys
 import glob
 from pathlib import Path
 import getopt
+import logging
 
 from .test_file import TestFile
 from .test_func import TestFunc
@@ -76,13 +77,17 @@ def generate_html2(fname=None):
 
 
 def main(fname=None):
+
+  # logging.basicConfig(level=logging.DEBUG,
+  #                     format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s')
+
   # generate_html(fname)
 
-  fn = "test/unit_test/find_point/find_point_test.cpp"
+  fn = "testcpp/path_tracking_application_test.cpp"
 
   tf = TestFile(fn)
-  tf.src_file = "src/find_point/find_point_new.cpp"
-  func = TestFunc("FindPlanHandover", "")
+  tf.src_file = "testcpp/path_tracking_application.cpp"
+  func = TestFunc("GetHybirdState", "")
   func.test_file = tf
   func.generate_cfg()
 
@@ -99,8 +104,10 @@ if __name__ == "__main__":
   # print('=======================')
   # generate_html()
 
-  import pkg_resources
-  my_data = pkg_resources.resource_string(__name__, "foo.dat")
+  # import pkg_resources
+  # my_data = pkg_resources.resource_string(__name__, "foo.dat")
 
-  # mod_path = files('gtest_report')
-  print(my_data)
+  # # mod_path = files('gtest_report')
+  # print(my_data)
+
+  main()

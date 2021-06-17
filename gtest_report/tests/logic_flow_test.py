@@ -3,11 +3,21 @@
 """Tests for comment_parser.parsers.go_parser.py"""
 
 import unittest
-from gtest_report.logic_flow import analysis
+from gtest_report.logic_flow import LogicFlow
 from pprint import pprint
 
 
-class GoParserTest(unittest.TestCase):
+class LogicFlowTest(unittest.TestCase):
+
+  lf = None
+
+  def setUp(self):
+    print("LF setup")
+
+    self.lf = LogicFlow()
+
+  def tearDown(self):
+    print("LF teardown")
 
   def testSingleIf(self):
     code = """
@@ -18,7 +28,7 @@ class GoParserTest(unittest.TestCase):
     }
     """
 
-    block_codes = analysis(code)
+    block_codes = self.lf.analysis(code)
 
     self.assertEqual(len(block_codes), 1)
     self.assertEqual(block_codes[0].no, "C1")
@@ -37,14 +47,15 @@ class GoParserTest(unittest.TestCase):
     }
     """
 
-    block_codes = analysis(code)
-    print("===========================")
+    block_codes = self.lf.analysis(code)
+    print("=== block: ")
     pprint([x.code_lines for x in block_codes])
+    print("=== branch-0: ")
+    pprint([x.branchs[0].code_lines for x in block_codes])
     print("===========================")
 
-    self.assertEqual(len(block_codes), 2)
-    self.assertEqual(len(block_codes[0].code_lines), 5)
-    self.assertEqual(len(block_codes[1].code_lines), 4)
+    self.assertEqual(len(block_codes), 1)
+    self.assertEqual(len(block_codes[0].branchs[0].code_lines), 5)
 
   def testSingleIfElseWithoutBackBrace(self):
     code = """
@@ -57,7 +68,7 @@ class GoParserTest(unittest.TestCase):
       bo_TransPoint = false;
     """
 
-    block_codes = analysis(code)
+    block_codes = self.lf.analysis(code)
     print("===========================")
     pprint([x.code_lines for x in block_codes])
     print("===========================")
@@ -74,7 +85,7 @@ class GoParserTest(unittest.TestCase):
       std::cout << "DistHandover: " << DistHandover << std::endl;
     }
     """
-    condition = analysis(code)[0]
+    condition = self.lf.analysis(code)[0]
 
     # self.assertEqual(condition.block_type, "for")
     self.assertEqual(condition.start_no, 2)
@@ -84,30 +95,28 @@ class GoParserTest(unittest.TestCase):
     code = u"""
     if(bo_TransPoint == true)
     {
-        std::cout << "挖机朝向上存在与主路的交点P，交点的Index: " << FP_stPlanToDwa_.nPlanToDwaIdx << " 挖机的朝向角为:" << FP_stDestinationStatus_.dAngleHeading  << std::endl;
+        std::cout << "Index: " << FP_stPlanToDwa_.nPlanToDwaIdx << " angle:" << FP_stDestinationStatus_.dAngleHeading  << std::endl;
         if(FP_stPlanToDwa_.nPlanToDwaIdx  < FP_stPlanToDwa_.nNearestIdx)
         {
             ToHandover_Idx_temp = FP_stPlanToDwa_.nPlanToDwaIdx ;
-            std::cout << "交点P在最近点E的左侧，基于交点P后退50m" << std::endl;
+            std::cout << "left back 50m" << std::endl;
         }
         else
         {
             ToHandover_Idx_temp = FP_stPlanToDwa_.nNearestIdx;
-            std::cout << "交点P在最近点E的右侧，基于最近点E后退50m" << std::endl;
+            std::cout << "right forward 50m" << std::endl;
         }
     }
     """
-    block_codes = analysis(code)
+    block_codes = self.lf.analysis(code)
     print("===========================")
     pprint([x.start_no for x in block_codes])
     print("===========================")
-    self.assertEqual(len(block_codes), 3)
+    self.assertEqual(len(block_codes), 2)
     self.assertEqual(block_codes[0].start_no, 2)
     self.assertEqual(block_codes[0].end_no, 15)
     self.assertEqual(block_codes[1].start_no, 5)
     self.assertEqual(block_codes[1].end_no, 11)
-    self.assertEqual(block_codes[2].start_no, 10)
-    self.assertEqual(block_codes[2].end_no, 16)
 
   def testSingleForNestIf(self):
     code = """
@@ -122,7 +131,7 @@ class GoParserTest(unittest.TestCase):
       }
     }
     """
-    blocks = analysis(code)
+    blocks = self.lf.analysis(code)
 
     self.assertEqual(len(blocks), 2)
     self.assertEqual(blocks[0].start_no, 2)
@@ -142,7 +151,7 @@ class GoParserTest(unittest.TestCase):
         }
     }
     """
-    blocks = analysis(code)
+    blocks = self.lf.analysis(code)
 
     print("===========================")
     pprint([x.code_lines for x in blocks])

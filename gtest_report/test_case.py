@@ -13,7 +13,7 @@ from pathlib import Path
 import itertools
 
 from jinja2 import Environment, FileSystemLoader
-from .logic_flow import analysis_lines
+from .logic_flow import LogicFlow
 
 
 class CodeLine:
@@ -120,7 +120,8 @@ class TestCase:
       blocks = []
       with open(filename) as f:
         blockcode_str_list = itertools.islice(f, start_pos, end_pos)
-        blocks = analysis_lines(blockcode_str_list)
+        lf = LogicFlow()
+        blocks = lf.analysis_lines(blockcode_str_list)
 
       if self.test_route:
         route_list = self.test_route.split('-')

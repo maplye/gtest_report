@@ -7,6 +7,7 @@
 # Latest Revision: 2021-06-07
 #
 # --------------------------------------------------------------------------------- #
+import logging
 
 
 class Block:
@@ -19,116 +20,143 @@ class Block:
   code_lines = None
   parent_block = None
 
-
-def analysis(code):
-  lines = code.splitlines()
-
-  block_codes = analysis_lines(lines)
-
-  return block_codes
+  branchs = []
 
 
-def analysis_lines(lines):
-
-  block_codes = []
-  analysis_code(block_codes, lines)
-
-  return block_codes
+print("111111111111111111111111")
+print(__name__)
+log = logging.getLogger(__name__)
 
 
-def analysis_code(blocks, code_lines, parent_block=None):
-  # print("*** analysis_code ===")
-  # pprint(code_lines)
+class LogicFlow:
 
-  block_start = False
-  nested_level = 0
+  def analysis(self, code):
+    lines = code.splitlines()
 
-  code_lines_new = []
-  block_id = None
+    block_codes = self.analysis_lines(lines)
 
-  for idx, line in enumerate(code_lines):
-    # print("%d: %s" % ( idx, line))
-    line = line.strip()
-    pre_line = line
+    return block_codes
 
-    if idx > 0:
-      if block_start is False and line.startswith(("if", "for", "else")):
-        # print("===block begin...", line)
-        code_lines_new = []
-        block = Block()
-        block.parent_block = parent_block
-        if parent_block:
-          block.start_no = parent_block.start_no + idx
-        else:
-          block.start_no = idx + 1
-        # print(code_lines_new)
+  def analysis_lines(self, lines):
 
-        block_id = idx
-        block_start = True
+    block_codes = []
+    self.analysis_code(block_codes, lines)
 
-      if block_start is True:
-        # print("===block inside...", line)
-        code_lines_new.append(line)
-        # print(code_lines_new)
+    return block_codes
 
-        # next line after block begin
-        if idx == block_id + 1:
-          # only one line code without brace
-          if line.endswith("{") is False:
-            block.code_lines = code_lines_new
-            block.end_no = idx
-            blocks.append(block)
-            code_lines_new = []
-
-        if line.endswith("{"):
-          nested_level = nested_level + 1
-
-        if line.startswith("}"):
-          nested_level = nested_level - 1
-
-          if nested_level == 0:
-            # print("===block end.", line)
-            if len(code_lines_new) > 0:
-              block.code_lines = code_lines_new
-              block.no = "C" + str(len(blocks) + 1)
-              if parent_block:
-                block.end_no = parent_block.start_no + idx + 2
-              else:
-                block.end_no = idx + 1
-              blocks.append(block)
-              analysis_code(blocks, code_lines_new, block)
-
-            code_lines_new = []
-            block_start = False
-
-
-def analysis_block(block_code):
-  lines = code.splitlines()
-
-  block = None
-  for idx, line in enumerate(lines):
-    print("%d: %s" % (idx, line))
-    line = line.strip()
+  def analysis_code(self, blocks, code_lines, parent_block=None):
+    log.info("=== analysis_code ===")
 
     block_start = False
+    nested_level = 0
 
-    if line.startswith("if"):
-      block = Block()
-      block.block_type = "if"
-      block.start_no = idx + 1
-      block_start = True
+    code_lines_new = []
+    block_id = None
+    pre_block = None
 
-    if line.startswith("for"):
-      block = Block()
-      block.block_type = "for"
-      block.start_no = idx + 1
+    for idx, line in enumerate(code_lines):
+      log.debug("%d: %s" % (idx, line))
+      line = line.strip()
+      pre_line = line
 
-    if line.startswith("{"):
-      block.body_start_no = idx + 2
+      if idx > 0:
+        if block_start is False and line.startswith(("if", "for", "else")):
 
-    if line.startswith("}"):
-      block.body_end_no = idx
-      block.end_no = idx + 1
+          block_type = None
+          if line.startswith("if"):
+            block_type = "if"
+          elif line.startswith("for"):
+            block_type = "for"
+          elif line.startswith("else"):
+            block_type = "else"
+
+          log.debug("block start: %s", block_type)
+
+          # print("===block begin...", line)
+          code_lines_new = []
+          block = Block()
+          block.block_type = block_type
+          block.parent_block = parent_block
+          if parent_block:
+            block.start_no = parent_block.start_no + idx
+          else:
+            block.start_no = idx + 1
+          # print(code_lines_new)
+
+          block_id = idx
+          block_start = True
+
+        if block_start is True:
+          log.debug("inside and append to lines.")
+          code_lines_new.append(line)
+          # print(code_lines_new)
+
+          if idx == block_id + 1:
+            log.debug("next line after block begin.")
+            if line.endswith("{") is False:
+              log.debug("only one line code without brace.")
+              block.code_lines = code_lines_new
+              block.end_no = idx
+              blocks.append(block)
+              code_lines_new = []
+
+          if line.endswith("{"):
+            nested_level = nested_level + 1
+            log.debug("nested_level {: %d", nested_level)
+
+          if line.startswith("}"):
+            nested_level = nested_level - 1
+            log.debug("nested_level }: %d", nested_level)
+
+            if nested_level == 0:
+              # print("===block end.", line)
+              if len(code_lines_new) > 0:
+                block.code_lines = code_lines_new
+                block.no = "C" + str(len(blocks) + 1)
+                if parent_block:
+                  block.end_no = parent_block.start_no + idx + 2
+                else:
+                  block.end_no = idx + 1
+
+                if block.block_type == "else":
+                  log.debug("append else branch to block:%s." % pre_block.no)
+                  pre_block.branchs.append(block)
+                else:
+                  pre_block = block
+                  log.debug("append to blocks.")
+                  blocks.append(block)
+                self.analysis_code(blocks, code_lines_new, block)
+
+              code_lines_new = []
+              block_start = False
+
+  def analysis_block(self, block_code):
+    lines = block_code.splitlines()
+
+    block = None
+    for idx, line in enumerate(lines):
+      print("%d: %s" % (idx, line))
+      line = line.strip()
+
       block_start = False
 
-  return block
+      if line.startswith("if"):
+        block = Block()
+        block.block_type = "if"
+        block.start_no = idx + 1
+        block_start = True
+
+      if line.startswith("for"):
+        block = Block()
+        block.block_type = "for"
+        block.start_no = idx + 1
+
+      if line.startswith("{"):
+        block.body_start_no = idx + 2
+
+      if line.startswith("}"):
+        block.body_end_no = idx
+        block.end_no = idx + 1
+        block_start = False
+
+    return block

@@ -13,7 +13,7 @@ from pathlib import Path
 import itertools
 
 from jinja2 import Environment, FileSystemLoader
-from .logic_flow import analysis_lines
+from .logic_flow import LogicFlow
 
 NOW = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -85,8 +85,7 @@ class TestFunc:
 
   def generate_html(self):
     print(f"======test func: {self.name} generate_html======")
-    templates_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                  "templates")
+    templates_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "templates")
     env = Environment(loader=FileSystemLoader(templates_path))
     template = env.get_template('testfunc.html')
     output_from_parsed_template = template.render(model=self)
@@ -107,7 +106,8 @@ class TestFunc:
     filename = self.test_file.src_file
     with open(filename) as f:
       blockcode_str_list = itertools.islice(f, start_pos, end_pos)
-      blocks = analysis_lines(blockcode_str_list)
+      lf = LogicFlow()
+      blocks = lf.analysis_lines(blockcode_str_list)
 
     return blocks
 
@@ -126,8 +126,9 @@ class TestFunc:
 
       child_blocks = [x for x in blocks if x.parent_block == block]
 
-      g.add_node(f'{block.no}_E')
+      g.add_node(f'{block.no}_S', label=block.no + "_S: " + block.code_lines[0])
       g.add_node(f'{block.no}')
+      g.add_node(f'{block.no}_E')
 
       self.add_edge(g, f'{block.no}_S', block.no)
 
@@ -135,13 +136,19 @@ class TestFunc:
       if len(child_blocks) == 0:
         self.add_edge(g, block.no, f'{block.no}_E')
 
+      # 如果该节点有分支
+      if len(block.branchs) > 0:
+        self.add_edge(g, f'{block.no}_S', block.branchs[0].no)
+        self.add_edge(g, block.branchs[0].no, f'{block.no}_E')
+
       if block.parent_block:
         print("parent_block:", block.parent_block.no)
 
         # 如果有父节点，则当前节点结束指向父节点的结束
         self.add_edge(g, f'{block.no}_E', f'{block.parent_block.no}_E')
-
-        self.add_edge(g, f'{pre_block.no}_E', f'{block.parent_block.no}_S')
+        # 如果该节点没有分支
+        if len(block.branchs) == 0:
+          self.add_edge(g, f'{pre_block.no}_E', f'{block.parent_block.no}_S')
       else:
         print("no parent block.")
         if len(child_blocks) > 0:
@@ -160,7 +167,9 @@ class TestFunc:
           else:
             self.add_edge(g, f'{pre_block.no}_E', f'{block.no}_S')
 
-      self.add_edge(g, f'{block.no}_S', f'{block.no}_E')
+      # 如果该节点没有分支
+      if len(block.branchs) == 0:
+        self.add_edge(g, f'{block.no}_S', f'{block.no}_E')
 
       pre_block = block
 
