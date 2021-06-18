@@ -26,7 +26,7 @@ class LogicFlowTest(unittest.TestCase):
       if len(block.child_blocks) > 0:
         self.print_block(block)
 
-  def testSingleIf(self):
+  def test_SingleIf(self):
     code = """
     void Test::TestFunc() {
       if (DistToExH_Min <= 2.5)
@@ -44,7 +44,7 @@ class LogicFlowTest(unittest.TestCase):
     self.assertEqual(block.child_blocks[0].end_no, 6)
     self.assertEqual(block.child_blocks[0].block_type, "if")
 
-  def testSingleIfNoBrace(self):
+  def test_SingleIfNoBrace(self):
     code = """
     void Test::TestFunc() {
       if (DistToExH_Min <= 2.5)
@@ -63,7 +63,7 @@ class LogicFlowTest(unittest.TestCase):
     self.assertEqual(block.child_blocks[0].end_no, 3)
     self.assertEqual(block.child_blocks[0].block_type, "if")
 
-  def testSingleIfElse(self):
+  def test_SingleIfElse(self):
     code = """
     void Test::TestFunc() {
       if (a <= 0)
@@ -95,7 +95,7 @@ class LogicFlowTest(unittest.TestCase):
     self.assertEqual(block.child_blocks[1].end_no, 13)
     self.assertEqual(block.child_blocks[1].block_type, "ifelse")
 
-  def testSingleIfElseWithoutBackBrace(self):
+  def test_SingleIfElseWithoutBackBrace(self):
     code = """
     void Test::TestFunc() {
       if (DistToExH_Min <= 2.5)
@@ -116,7 +116,7 @@ class LogicFlowTest(unittest.TestCase):
     self.assertEqual(block.child_blocks[0].end_no, 5)
     self.assertEqual(block.child_blocks[0].block_type, "ifelse")
 
-  def testSingleFor(self):
+  def test_SingleFor(self):
     code = """
     void Test::TestFunc() {
       for(int i = ToHandover_Idx_temp;i >= 0 ; i--)
@@ -137,7 +137,7 @@ class LogicFlowTest(unittest.TestCase):
     self.assertEqual(block.child_blocks[0].start_no, 2)
     self.assertEqual(block.child_blocks[0].end_no, 6)
 
-  def testIfNestIf(self):
+  def test_IfNestIf(self):
     code = """
     void Test::TestFunc() {
       if(bo_TransPoint == true)
@@ -168,7 +168,7 @@ class LogicFlowTest(unittest.TestCase):
     self.assertEqual(block.child_blocks[0].child_blocks[0].start_no, 5)
     self.assertEqual(block.child_blocks[0].child_blocks[0].end_no, 14)
 
-  def testSingleForNestIf(self):
+  def test_SingleForNestIf(self):
     code = """
     void Test::TestFunc() {
       for(int i = ToHandover_Idx_temp;i >= 0 ; i--)
@@ -196,7 +196,7 @@ class LogicFlowTest(unittest.TestCase):
     self.assertEqual(block.child_blocks[0].child_blocks[0].start_no, 6)
     self.assertEqual(block.child_blocks[0].child_blocks[0].end_no, 10)
 
-  def testForNestFor(self):
+  def test_ForNestFor(self):
     code = """
     void Test::TestFunc() {
       for (int d = max(20,int(DistToEx_Min)); d < 120; d++)
