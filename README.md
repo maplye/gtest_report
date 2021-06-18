@@ -16,22 +16,16 @@ pass
 
 ### Running tests
 
+
 ```shell
+
+pytest tests <-s>
+pytest tests/test_models.py
+pytest tests/test_price.py::TestPrice::test_main
+pytest tests --cov=powerfee --cov-report=html
+
 python3 setup.py test
 
-nosetests gtest_report.tests.logic_flow_test:LogicFlowTest.testSingleIf -s
-
-nosetests gtest_report.tests.logic_flow_test:LogicFlowTest --debug=gtest_report.logic_flow
-```
-
-show print:
-```shell
-nosetests gtest_report.tests.logic_flow_test:LogicFlowTest.testSingleIf -s
-```
-
-show logging:
-```shell
-nosetests -l gtest_report.tests.logic_flow_test:LogicFlowTest --debug=[gtest_report.logic_flow]
 ```
 
 ### Running pylint

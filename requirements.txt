@@ -1,3 +1,5 @@
 comment-parser==1.2.3
 Jinja2==3.0.1
 pygraphviz
+
+pytest==6.2.4
