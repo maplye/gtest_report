@@ -11,10 +11,14 @@ import os
 from datetime import datetime
 from pathlib import Path
 import itertools
+import logging
 
 from jinja2 import Environment, FileSystemLoader
+import pygraphviz as pyg
+
 from .logic_flow import LogicFlow
 
+log = logging.getLogger(__name__)
 NOW = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -107,16 +111,123 @@ class TestFunc:
     with open(filename) as f:
       blockcode_str_list = itertools.islice(f, start_pos, end_pos)
       lf = LogicFlow()
-      blocks = lf.analysis_lines(blockcode_str_list)
+      blocks = lf.analysis_lines(list(blockcode_str_list))
 
     return blocks
 
+  def add_node(self, g, n, **attr):
+    log.debug("add_node: %s" % n)
+    g.add_node(n, **attr)
+
   def add_edge(self, g, start, end):
-    print("add_edge:", start, "->", end)
+    log.debug("add_edge: %s -> %s" % (start, end))
     g.add_edge(start, end, dir="forward")
 
   def generate_cfg(self):
-    import pygraphviz as pyg
+    root_block = self.get_blocks()[0]
+
+    g = pyg.AGraph()
+
+    self.generate_cfg_block(g, root_block)
+
+  def generate_cfg_block(self, root_block):
+
+    g = pyg.AGraph()
+
+    self.generate_cfg_block_loop(g, root_block)
+
+    g.layout(prog='dot')  # 绘图类型
+    g.draw('pyg1.png')  # 绘制
+
+  def generate_cfg_block_loop(self, g, block):
+    log.info("= generate_cfg_block ...")
+    log.debug("block start no: %s" % block.start_no)
+    log.debug("codelines:")
+    log.debug(block.code_lines)
+    log.debug("block_type: %s" % block.block_type)
+    log.debug("child_blocks: %d" % len(block.child_blocks))
+
+    if block.block_type == "ifelse":
+      self.add_node(g, f'{block.start_no}')
+      self.add_node(g, f'{block.start_no}_E')
+      self.add_node(g, f'{block.child_blocks[0].start_no}')
+      self.add_node(g, f'{block.child_blocks[1].start_no}')
+
+      self.add_edge(g, f'{block.start_no}', f'{block.child_blocks[0].start_no}')
+      self.add_edge(g, f'{block.start_no}', f'{block.child_blocks[1].start_no}')
+
+      # 若没有子节点则连接到父结束点
+      if len(block.child_blocks[0].child_blocks) == 0:
+        self.add_edge(g, f'{block.child_blocks[0].start_no}', f'{block.start_no}_E')
+      if len(block.child_blocks[1].child_blocks) == 0:
+        self.add_edge(g, f'{block.child_blocks[1].start_no}', f'{block.start_no}_E')
+
+      for child_block in block.child_blocks:
+        self.generate_cfg_block_loop(g, child_block)
+
+      if block.parent_block and len(block.child_blocks) > 0:
+        log.debug("ifelse: add block end to parent end.")
+        # self.add_edge(g, f'{block.start_no}_E', f'{block.parent_block.start_no}_E')
+
+    if block.block_type == "if":
+      self.add_node(g, f'{block.start_no}')
+      self.add_node(g, f'{block.child_blocks[0].start_no}')
+      self.add_node(g, f'{block.start_no}_E')
+      self.add_edge(g, f'{block.start_no}', f'{block.child_blocks[0].start_no}')
+      self.add_edge(g, f'{block.start_no}', f'{block.start_no}_E')
+      self.add_edge(
+          g,
+          f'{block.child_blocks[0].start_no}',
+          f'{block.start_no}_E',
+      )
+
+      # if block.parent_block:
+      #   self.add_edge(g, f'{block.parent_block.start_no}', f'{block.start_no}')
+
+      for child_block in block.child_blocks:
+        self.generate_cfg_block_loop(g, child_block)
+
+      if block.parent_block and len(block.child_blocks) > 0:
+        log.debug("if: add block end to parent end.")
+        self.add_edge(g, f'{block.start_no}_E', f'{block.parent_block.start_no}_E')
+
+    if block.block_type == "code":
+
+      self.add_node(g, f'{block.start_no}')
+
+      pre_child_block = None
+      last_child_block = None
+      for child_block in block.child_blocks:
+        log.debug("child_block start no: %s" % child_block.start_no)
+        self.add_node(g, f'{child_block.start_no}')
+
+        self.generate_cfg_block_loop(g, child_block)
+
+        if pre_child_block:
+          log.debug("link previous node: %s" % pre_child_block.start_no)
+          self.add_edge(g, f'{pre_child_block.start_no}_E', f'{child_block.start_no}')
+
+        pre_child_block = child_block
+        last_child_block = child_block
+
+      # 父节点链接第一个子节点
+      if block.parent_block and len(block.child_blocks) > 0:
+        log.debug("link parent to first child node")
+        self.add_edge(g, f'{block.start_no}', f'{block.child_blocks[0].start_no}')
+
+      # 最后一个子节点链接父尾节点
+      if block.parent_block and len(block.child_blocks) > 0:
+        log.debug("last child node end to block end.")
+        # self.add_edge(g, f'{block.child_blocks[-1].start_no}_E', f'{block.start_no}_E')
+
+      pre_child_block = None
+
+      if block.parent_block and len(block.child_blocks) > 0:
+        log.debug("code: add block end to parent end.")
+        self.add_edge(g, f'{block.start_no}_E', f'{block.parent_block.start_no}_E')
+
+  def generate_cfg1(self):
+
     blocks = self.get_blocks()
     # print(blocks)
 

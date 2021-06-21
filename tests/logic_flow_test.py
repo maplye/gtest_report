@@ -6,18 +6,20 @@ import unittest
 from gtest_report.logic_flow import LogicFlow
 from pprint import pprint
 
+from gtest_report.test_func import TestFunc
+
 
 class LogicFlowTest(unittest.TestCase):
 
   lf = None
 
   def setUp(self):
-    print("setup")
+    print("")
 
     self.lf = LogicFlow()
 
   def tearDown(self):
-    print("teardown")
+    pass
 
   def print_block(self, block):
     for block in block.child_blocks:
@@ -39,10 +41,17 @@ class LogicFlowTest(unittest.TestCase):
 
     block = self.lf.analysis(code)[0]
 
-    self.assertEqual(len(block.child_blocks), 1)
-    self.assertEqual(block.child_blocks[0].start_no, 2)
-    self.assertEqual(block.child_blocks[0].end_no, 6)
-    self.assertEqual(block.child_blocks[0].block_type, "if")
+    assert len(block.child_blocks) == 1
+    assert block.child_blocks[0].start_no == 2
+    assert block.child_blocks[0].end_no == 6
+    assert block.child_blocks[0].block_type == "if"
+    assert len(block.child_blocks[0].child_blocks) == 1
+    assert block.child_blocks[0].child_blocks[0].block_type == "code"
+    assert block.child_blocks[0].child_blocks[0].start_no == 3
+    assert block.child_blocks[0].child_blocks[0].end_no == 6
+
+    tf = TestFunc("", "")
+    tf.generate_cfg_block(block.child_blocks[0])
 
   def test_SingleIfNoBrace(self):
     code = """
@@ -63,13 +72,12 @@ class LogicFlowTest(unittest.TestCase):
     self.assertEqual(block.child_blocks[0].end_no, 3)
     self.assertEqual(block.child_blocks[0].block_type, "if")
 
+    tf = TestFunc("", "")
+    tf.generate_cfg_block(block.child_blocks[0])
+
   def test_SingleIfElse(self):
     code = """
     void Test::TestFunc() {
-      if (a <= 0)
-      {
-        b = true;
-      }
       if (DistToExH_Min <= 2.5)
       {
         bo_TransPoint = true;
@@ -87,13 +95,20 @@ class LogicFlowTest(unittest.TestCase):
     self.print_block(block)
     print("===========================")
 
-    self.assertEqual(len(block.child_blocks), 2)
-    self.assertEqual(block.child_blocks[0].start_no, 2)
-    self.assertEqual(block.child_blocks[0].end_no, 5)
-    self.assertEqual(block.child_blocks[0].block_type, "if")
-    self.assertEqual(block.child_blocks[1].start_no, 6)
-    self.assertEqual(block.child_blocks[1].end_no, 13)
-    self.assertEqual(block.child_blocks[1].block_type, "ifelse")
+    assert len(block.child_blocks) == 1
+    assert block.child_blocks[0].start_no == 2
+    assert block.child_blocks[0].end_no == 9
+    assert block.child_blocks[0].block_type == "ifelse"
+    assert len(block.child_blocks[0].child_blocks) == 2
+    assert block.child_blocks[0].child_blocks[0].start_no == 3
+    assert block.child_blocks[0].child_blocks[0].end_no == 5
+    assert block.child_blocks[0].child_blocks[0].block_type == "code"
+    assert block.child_blocks[0].child_blocks[1].start_no == 7
+    assert block.child_blocks[0].child_blocks[1].end_no == 9
+    assert block.child_blocks[0].child_blocks[1].block_type == "code"
+
+    tf = TestFunc("", "")
+    tf.generate_cfg_block(block.child_blocks[0])
 
   def test_SingleIfElseWithoutBackBrace(self):
     code = """
@@ -145,13 +160,13 @@ class LogicFlowTest(unittest.TestCase):
         std::cout << "Index: " << FP_stPlanToDwa_.nPlanToDwaIdx << std::endl;
         if(FP_stPlanToDwa_.nPlanToDwaIdx  < FP_stPlanToDwa_.nNearestIdx)
         {
-            ToHandover_Idx_temp = FP_stPlanToDwa_.nPlanToDwaIdx ;
-            std::cout << "left back 50m" << std::endl;
+          ToHandover_Idx_temp = FP_stPlanToDwa_.nPlanToDwaIdx ;
+          std::cout << "left back 50m" << std::endl;
         }
         else
         {
-            ToHandover_Idx_temp = FP_stPlanToDwa_.nNearestIdx;
-            std::cout << "right forward 50m" << std::endl;
+          ToHandover_Idx_temp = FP_stPlanToDwa_.nNearestIdx;
+          std::cout << "right forward 50m" << std::endl;
         }
       }
     }
@@ -161,12 +176,28 @@ class LogicFlowTest(unittest.TestCase):
     self.print_block(block)
     print("===========================")
     self.assertEqual(len(block.child_blocks), 1)
+
     self.assertEqual(block.child_blocks[0].block_type, "if")
-    self.assertEqual(block.child_blocks[0].start_no, 2)
-    self.assertEqual(block.child_blocks[0].end_no, 15)
-    self.assertEqual(block.child_blocks[0].child_blocks[0].block_type, "ifelse")
-    self.assertEqual(block.child_blocks[0].child_blocks[0].start_no, 5)
+    self.assertEqual(block.child_blocks[0].child_blocks[0].start_no, 2)
+    self.assertEqual(block.child_blocks[0].child_blocks[0].end_no, 15)
+
+    self.assertEqual(len(block.child_blocks[0].child_blocks), 2)
+
+    self.assertEqual(block.child_blocks[0].child_blocks[0].block_type, "code")
+    self.assertEqual(block.child_blocks[0].child_blocks[0].start_no, 4)
     self.assertEqual(block.child_blocks[0].child_blocks[0].end_no, 14)
+    self.assertEqual(block.child_blocks[0].child_blocks[1].block_type, "ifelse")
+    self.assertEqual(block.child_blocks[0].child_blocks[1].start_no, 2)
+    self.assertEqual(block.child_blocks[0].child_blocks[1].end_no, 15)
+    self.assertEqual(block.child_blocks[0].child_blocks[1].child_blocks[0].block_type, "code")
+    self.assertEqual(block.child_blocks[0].child_blocks[1].child_blocks[0].start_no, 7)
+    self.assertEqual(block.child_blocks[0].child_blocks[1].child_blocks[0].end_no, 8)
+    self.assertEqual(block.child_blocks[0].child_blocks[1].child_blocks[1].block_type, "code")
+    self.assertEqual(block.child_blocks[0].child_blocks[1].child_blocks[1].start_no, 12)
+    self.assertEqual(block.child_blocks[0].child_blocks[1].child_blocks[1].end_no, 13)
+
+    tf = TestFunc("", "")
+    tf.generate_cfg_block(block.child_blocks[0])
 
   def test_SingleForNestIf(self):
     code = """
@@ -196,6 +227,9 @@ class LogicFlowTest(unittest.TestCase):
     self.assertEqual(block.child_blocks[0].child_blocks[0].start_no, 6)
     self.assertEqual(block.child_blocks[0].child_blocks[0].end_no, 10)
 
+    tf = TestFunc("", "")
+    tf.generate_cfg_block(block.child_blocks[0])
+
   def test_ForNestFor(self):
     code = """
     void Test::TestFunc() {
@@ -223,3 +257,56 @@ class LogicFlowTest(unittest.TestCase):
     self.assertEqual(block.child_blocks[0].child_blocks[0].block_type, "for")
     self.assertEqual(block.child_blocks[0].child_blocks[0].start_no, 6)
     self.assertEqual(block.child_blocks[0].child_blocks[0].end_no, 9)
+
+    tf = TestFunc("", "")
+    tf.generate_cfg_block(block.child_blocks[0])
+
+  def test_Temp(self):
+    code = """
+      void PathTrackingApplication::GetHybirdState() {
+        if (parking_control_ == HYBIRDASTAR_CONTROL)
+        {
+          std::cout << " 1 " << std::endl;
+          float dis_to_end = 1000;
+          if (wayPoint_backoff[0].size() != 0)
+          {
+            dis_to_end = 2000 ;
+          }
+          else
+          {
+            dis_to_end = 1000;
+          }
+          std::cout << " dis_to_end is:  " << dis_to_end << std::endl;
+          if (dis_to_end >= 2.0 && dc_command_ == 4)
+          {
+            enum_avp_state_ = PARKING_IN;
+            return;
+          }
+        }
+        else
+        {
+          enum_avp_state_ = INIT;
+          return;
+        }
+      }
+      """
+    block = self.lf.analysis(code)[0]
+
+    print("===========================")
+    self.print_block(block)
+    print("===========================")
+
+    assert len(block.child_blocks), 1
+    assert block.child_blocks[0].block_type == "ifelse"
+    assert block.child_blocks[0].start_no == 2
+    assert block.child_blocks[0].end_no == 25
+    assert len(block.child_blocks[0].child_blocks) == 2
+    assert block.child_blocks[0].child_blocks[0].block_type == "code"
+    assert block.child_blocks[0].child_blocks[0].start_no == 3
+    assert block.child_blocks[0].child_blocks[0].end_no == 20
+    assert block.child_blocks[0].child_blocks[1].block_type == "code"
+    assert block.child_blocks[0].child_blocks[1].start_no == 22
+    assert block.child_blocks[0].child_blocks[1].end_no == 25
+
+    tf = TestFunc("", "")
+    tf.generate_cfg_block(block.child_blocks[0])
