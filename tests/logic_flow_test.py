@@ -176,25 +176,26 @@ class LogicFlowTest(unittest.TestCase):
     self.print_block(block)
     print("===========================")
     self.assertEqual(len(block.child_blocks), 1)
-
+    # if(bo_TransPoint == true)
     self.assertEqual(block.child_blocks[0].block_type, "if")
-    self.assertEqual(block.child_blocks[0].child_blocks[0].start_no, 2)
-    self.assertEqual(block.child_blocks[0].child_blocks[0].end_no, 15)
-
-    self.assertEqual(len(block.child_blocks[0].child_blocks), 2)
-
+    self.assertEqual(block.child_blocks[0].start_no, 2)
+    self.assertEqual(block.child_blocks[0].end_no, 15)
+    # if body
     self.assertEqual(block.child_blocks[0].child_blocks[0].block_type, "code")
-    self.assertEqual(block.child_blocks[0].child_blocks[0].start_no, 4)
-    self.assertEqual(block.child_blocks[0].child_blocks[0].end_no, 14)
-    self.assertEqual(block.child_blocks[0].child_blocks[1].block_type, "ifelse")
-    self.assertEqual(block.child_blocks[0].child_blocks[1].start_no, 2)
-    self.assertEqual(block.child_blocks[0].child_blocks[1].end_no, 15)
-    self.assertEqual(block.child_blocks[0].child_blocks[1].child_blocks[0].block_type, "code")
-    self.assertEqual(block.child_blocks[0].child_blocks[1].child_blocks[0].start_no, 7)
-    self.assertEqual(block.child_blocks[0].child_blocks[1].child_blocks[0].end_no, 8)
-    self.assertEqual(block.child_blocks[0].child_blocks[1].child_blocks[1].block_type, "code")
-    self.assertEqual(block.child_blocks[0].child_blocks[1].child_blocks[1].start_no, 12)
-    self.assertEqual(block.child_blocks[0].child_blocks[1].child_blocks[1].end_no, 13)
+    self.assertEqual(block.child_blocks[0].child_blocks[0].start_no, 3)
+    self.assertEqual(block.child_blocks[0].child_blocks[0].end_no, 15)
+    # if else
+    self.assertEqual(block.child_blocks[0].child_blocks[0].child_blocks[0].block_type, "ifelse")
+    self.assertEqual(block.child_blocks[0].child_blocks[0].child_blocks[0].start_no, 5)
+    self.assertEqual(block.child_blocks[0].child_blocks[0].child_blocks[0].end_no, 14)
+    # if body
+    self.assertEqual(block.child_blocks[0].child_blocks[0].child_blocks[0].child_blocks[0].block_type, "code")
+    self.assertEqual(block.child_blocks[0].child_blocks[0].child_blocks[0].child_blocks[0].start_no, 6)
+    self.assertEqual(block.child_blocks[0].child_blocks[0].child_blocks[0].child_blocks[0].end_no, 9)
+    # else body
+    self.assertEqual(block.child_blocks[0].child_blocks[0].child_blocks[0].child_blocks[1].block_type, "code")
+    self.assertEqual(block.child_blocks[0].child_blocks[0].child_blocks[0].child_blocks[1].start_no, 11)
+    self.assertEqual(block.child_blocks[0].child_blocks[0].child_blocks[0].child_blocks[1].end_no, 14)
 
     tf = TestFunc("", "")
     tf.generate_cfg_block(block.child_blocks[0])
